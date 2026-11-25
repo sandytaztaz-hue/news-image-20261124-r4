@@ -7,6 +7,7 @@ before writing, and exits non-zero on any mismatch.
 import hashlib
 import os
 import shutil
+import struct
 import sys
 
 EXPECTED_SHA256 = "2afe18b2eb178dd447c1b1e750ece34bb301e8f4f332721320056304c6a67d8f"
@@ -22,6 +23,14 @@ def main():
     digest = hashlib.sha256(data).hexdigest()
     if digest != EXPECTED_SHA256:
         print(f"entry.png SHA-256 mismatch: got {digest}, expected {EXPECTED_SHA256}",
+              file=sys.stderr)
+        return 1
+    if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+        print("entry.png is not a PNG file", file=sys.stderr)
+        return 1
+    width, height = struct.unpack(">II", data[16:24])
+    if (width, height) != (1024, 1024):
+        print(f"entry.png dimensions {width}x{height}, expected 1024x1024",
               file=sys.stderr)
         return 1
     dst = os.path.join(out_dir, "entry.png")
